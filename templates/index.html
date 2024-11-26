@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+       <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /*justify-content: center;*/
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #user_input {
+            width: 300px;
+            max-width: 600px;
+            height: 30px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            resize: none;
+        }
+        #user_bk {
+            width: 300px;
+            max-width: 600px;
+            height: 30px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            resize: none;
+        }
+        #user_prompt {
+            width: 300px;
+            max-width: 600px;
+            height: 80px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            resize: none;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            width: 80%;
+            max-width: 800px;
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            overflow-wrap: break-word;
+        }
+    </style>
+    <title>Ai 财务自由</title>
+</head>
+<body>
+    <h1>Ai 财务自由</h1>
+    <form method="POST">
+        <input type="text" id="user_input" name="user_input" placeholder="输入股票代码，只支持软件板块"/>
+        <input type="text" id="user_bk" name="user_bk"  placeholder="输入一个板块编号"/>
+        <textarea type="text" id="user_prompt" name="user_prompt" placeholder="补充提示词"></textarea>
+        <button type="submit">15点30前预测当日走势，否则为明日走势</button>
+        <h2>目前只有个股的部分数据，预测结果仅用于<t style="color: red">学习</t>；银海002777，软件BK0737</h2>
+    </form>
+    <hr>
+    <div id="result">
+        {{ result_md | safe }}
+    </div>
+</body>
+</html>
