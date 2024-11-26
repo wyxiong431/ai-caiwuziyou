@@ -79,16 +79,17 @@
             overflow-wrap: break-word;
         }
     </style>
-    <title>Ai 财务自由</title>
+    <title>Ai 财务自由v0.2</title>
 </head>
 <body>
-    <h1>Ai 财务自由</h1>
+    <h1>Ai 财务自由v0.2</h1>
     <form method="POST">
-        <input type="text" id="user_input" name="user_input" placeholder="输入股票代码，只支持软件板块"/>
+        <input type="text" id="user_input" name="user_input" placeholder="输入一个股票代码"/>
         <input type="text" id="user_bk" name="user_bk"  placeholder="输入一个板块编号"/>
         <textarea type="text" id="user_prompt" name="user_prompt" placeholder="补充提示词"></textarea>
         <button type="submit">15点30前预测当日走势，否则为明日走势</button>
         <h2>目前只有个股的部分数据，预测结果仅用于<t style="color: red">学习</t>；银海002777，软件BK0737</h2>
+        <div>v0.2优化部分提示，当日预测添加板块1分钟k数据</div>
     </form>
     <hr>
     <div id="result">

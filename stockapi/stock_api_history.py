@@ -38,7 +38,7 @@ def query_day_kline(code, start_date, end_date, calculation_cycle=100):
                 "最高价": entry.get("high", "N/A"),
                 "最低价": entry.get("low", "N/A"),
                 "收盘价": entry.get("close", "N/A"),
-                "成绩额": entry.get("amount", "N/A"),
+                "成交额": entry.get("amount", "N/A"),
                 "换手率": entry.get("turnoverRatio", "N/A"),
                 # "成交量": entry.get("volume", "N/A"),
                 # "均价": entry.get("avgPrice", "N/A"),

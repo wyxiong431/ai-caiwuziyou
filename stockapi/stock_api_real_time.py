@@ -1,4 +1,5 @@
 import requests
+import json
 
 
 token = '18255e67301d178a9bb17661933c55a0895154078885110d'
@@ -188,4 +189,40 @@ def query_realtime_macd(code, long_cycle=26, short_cycle=12):
 
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
+
+
+def query_realtime_bk(code):
+    # SSE 流式传输接口 URL
+    url = f"https://77.push2.eastmoney.com/api/qt/stock/trends2/sse?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f17&fields2=f51,f52,f53,f54,f55,f56,f57,f58&mpi=1000&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=90.{code}&ndays=1&iscr=0&iscca=0"
+    # 启动请求，获取 SSE 流式数据
+    with requests.get(url, stream=True)as response:# 确保请求成功
+        if response.status_code == 200:
+            for line in response.iter_lines():
+                if line:
+                    line_str = line.decode('utf-8')
+                    # Extract the JSON part of the string
+                    json_part = line_str.split('data: ', 1)[1]
+
+                    # Load the JSON data
+                    data = json.loads(json_part)
+
+                    # Parse and convert the trends to JSON array
+                    trends_raw = data['data']['trends']
+                    trends_parsed = [
+                        {
+                            "时间": trend.split(",")[0][11:],
+                            "开盘": float(trend.split(",")[1]),
+                            "最高": float(trend.split(",")[2]),
+                            "最低": float(trend.split(",")[3]),
+                            "收盘": float(trend.split(",")[4]),
+                            "成交量": int(trend.split(",")[5]),
+                            "成交额": float(trend.split(",")[6])
+                            # "评价价": float(trend.split(",")[7])
+                        }
+                        for trend in trends_raw
+                    ]
+                    return trends_parsed
+                    break
+        else:
+            print(f"错误{response.status_code}")
 
