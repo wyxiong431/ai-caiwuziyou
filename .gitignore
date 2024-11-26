@@ -2,3 +2,4 @@
 /privatekey.key
 /test.py
 /.venv/
+/config.py
