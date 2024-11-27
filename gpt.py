@@ -25,26 +25,26 @@ def ask_gpt(data, user_prompt=""):
         sys_prompt = '''
 你是一个A股投资专家，擅长通过股票的历史数据预测下一交易日的股价走势，并提供投资建议。股票相关数据将包含在 `<data/>` 标签内。
 # 任务步骤
-1. 深入分析提供的数据，找到数据趋势和规律，并分析走势。
+1. 深入分析提供的数据，找到数据趋势和规律，发现不同数据之间的关系，并分析走势。
 2. 通过历史数据预测下一交易日的相关股价走势，包括开盘价、区间、收盘价。
-3. 提供明确的买卖策略建议，包括：日内投资、短线投资、中线投资。
-4. 中国股市设涨跌停，并且是T+1操作，给出的投资建议要给出仓位管理。
-5. 根据数据给出谨慎建议。
+3. 提供明确的买卖策略建议，包括：明日日内博弈点、3日投资、周投资、中期投资、长期投资，投资建议要给出仓位管理。
+4. 中国股市设涨跌停，并且是T+1操作。
+5. 根据数据给出有把握的建议。
 
 # 输出格式
 请以清晰、简洁的文本形式输出结果。
             '''
     else:
         sys_prompt = '''
-你是一个A股投资专家，擅长通过股票的历史数据结合今日已经产生的1分钟k线数据，提出今日的投资建议。股票相关数据将包含在 `<data/>` 标签内。
+你是一个A股超短线投资专家，擅长通过股票的历史数据结合今日已经产生的1分钟k线数据，提出今日的投资建议。股票相关数据将包含在 `<data/>` 标签内。
 
 # 任务步骤
 
-1. 深入分析提供的数据，找到数据趋势和规律，并分析今日走势。
-2. 数据包含相关历史数据和该股票今日1分钟的k线、macd、kdj，以及对应的行业板块1分钟k线数据。
-3. 提供明确的买卖策略建议，包括今日是否博弈，博弈点，仓位，止损点。
-4. 中国股市设涨跌停，并且是T+1操作，给出的投资建议要给出仓位管理，上午交易时间9点30-11点30，下午1点开盘，3点收盘。
-5. 根据数据给出谨慎建议。
+1. 深入分析提供的数据，找到数据趋势和规律，发现不同数据之间的关系，并分析今日走势。
+2. 数据包含相关历史数据和该股票今日1分钟的k线、macd、kdj，相关行业板块数据，资金数据。
+3. 提供明确的买卖策略建议，包括今日是否博弈，博弈点，仓位，止损点，并告知理由。
+4. 中国股市设涨跌停，并且是T+1操作，上午交易时间9点30-11点30，下午1点开盘，3点收盘。
+5. 根据数据给出有把握的建议。
 
 # 输出格式
 
@@ -52,7 +52,7 @@ def ask_gpt(data, user_prompt=""):
             '''
     # client.base_url='http://121.43.97.233:5000/api/v1'
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="o1-preview",
         temperature=0,
         messages=[{"role": "system", "content": sys_prompt},
                   {"role": "user", "content": f"<data>{prompt}</data>;{user_prompt}"}]
@@ -76,31 +76,36 @@ def create_data(code, start_date, user_bk):
     short_cycle = 12  # 短期周期
 
     data = f"股票代码{code}\n"
-    data += "# 历史相关数据"
+    data += "# 历史日相关数据"
     data += "\n1.历史日线数据：\n"
     data += "\n".join(map(str,query_day_kline(index_code, start_date, end_date, calculation_cycle)))
-    data += "\n2.历史rsi数据：\n"
+    data += "\n2.历史日rsi数据：\n"
     data += "\n".join(map(str,query_rsi_data(index_code, start_date, end_date, calculation_cycle)))
-    data += "\n3.历史5,10,20,30日ma均线数据：\n"
+    data += "\n3.历史日5,10,20,30日ma均线数据：\n"
     data += "\n".join(map(str,query_ma_data(index_code, start_date, end_date, ma_periods, calculation_cycle)))
-    data += "\n4.历史kdj数据：\n"
+    data += "\n4.历史日kdj数据：\n"
     data += "\n".join(map(str,query_kdj_data(index_code, start_date, end_date, calculation_cycle, cycle, cycle1, cycle2)))
-    data += "\n5.历史macd数据：\n"
+    data += "\n5.历史日macd数据：\n"
     data += "\n".join(map(str,query_macd_data(index_code, start_date, end_date, calculation_cycle, long_cycle, short_cycle)))
+    data += "\n6.历史日资金流向：\n"
+    data += "\n".join(map(str, query_money_flow(index_code)))
 
-    data += "\n6.历史行业板块数据：\n"
+    data += "\n7.历史行业板块数据：\n"
     data += "\n".join(map(str,query_day_kline(user_bk, start_date, end_date)))
 
     if is_today():
-        data += "\n# 今日1分钟k线数据："
+        data += "\n# 今日数据："
         data += "\n1.今日股票1分钟k线：\n"
         data += "\n".join(map(str, query_index_realtime_kline(index_code)))
         data += "\n2.今日股票1分钟kdj：\n"
         data += "\n".join(map(str, query_realtime_kdj(index_code)))
         data += "\n3.今日股票1分钟MACD：\n"
         data += "\n".join(map(str, query_realtime_macd(index_code)))
-        data += f"\n4.今日关联的{user_bk}行业板块1分钟k线：\n"
+        data += f"\n4.今日最新资金流入情况：\n"
+        data += "\n".join(map(str, query_realtime_money_flow(index_code)))
+        data += f"\n5.今日关联的{user_bk}行业板块1分钟k线：\n"
         data += "\n".join(map(str, query_realtime_bk(user_bk)))
+
 
     return data
 

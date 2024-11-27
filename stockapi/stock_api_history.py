@@ -1,5 +1,6 @@
 import requests
 import config
+import time
 
 token = config.SECRET_KEY
 def query_day_kline(code, start_date, end_date, calculation_cycle=100):
@@ -40,7 +41,7 @@ def query_day_kline(code, start_date, end_date, calculation_cycle=100):
                 "收盘价": entry.get("close", "N/A"),
                 "成交额": entry.get("amount", "N/A"),
                 "换手率": entry.get("turnoverRatio", "N/A"),
-                # "成交量": entry.get("volume", "N/A"),
+                "成交量": entry.get("volume", "N/A"),
                 # "均价": entry.get("avgPrice", "N/A"),
                 # "涨跌": entry.get("change", "N/A"),
                 # "总股本": entry.get("totalShares", "N/A"),
@@ -293,4 +294,57 @@ def query_ma_data(code, start_date, end_date, ma_periods="5,10,20,30", calculati
         return {"error": str(e)}
 
 
+def query_money_flow(secid, lmt=20, klt=101):
+    if str(secid).startswith('0') or str(secid).startswith('3'):
+        secid = f"0.{secid}"
+    elif str(secid).startswith('6'):
+        secid = f"1.{secid}"
+    """
+    获取股票资金流向日K线数据并返回为JSON格式
+    :param secid: 股票代码（格式如：0.002777，市场代码.股票代码）
+    :param lmt: 限制条数，默认为0（获取全部）
+    :param klt: 时间周期，101表示日线
+    :return: JSON 格式数据，每行数据是一个字典
+    """
+    url = "https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get"
+    params = {
+        "lmt": lmt,
+        "klt": klt,
+        "fields1": "f1,f2,f3,f7",
+        "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65",
+        "secid": secid,
+        "_": int(time.time() * 1000)  # 动态时间戳
+    }
 
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get("rc") == 0 and "data" in data:
+            kline_data = data["data"].get("klines", [])
+            if not kline_data:
+                print("No data available.")
+                return []
+
+            # 字段名称
+            keys = [
+                "日期", "主力流入", "小单流入",
+                "中单流入","大单流入", "超大单流入","主力净占比",
+                "小单净占比", "中单净占比",  "大单净占比", "超大单净占比"
+            ]
+
+            # 解析为 JSON 格式
+            result = []
+            for row in kline_data:
+                values = row.split(",")
+                entry = {key: (f"{int(float(value) / 10000)}万" if (key != "日期" and '占比' not in key) else value) for key, value in zip(keys, values)}
+                result.append(entry)
+
+            return result
+        else:
+            print(f"Error in API response: {data.get('rt')}")
+            return []
+    except requests.RequestException as e:
+        print(f"HTTP Request failed: {e}")
+        return []

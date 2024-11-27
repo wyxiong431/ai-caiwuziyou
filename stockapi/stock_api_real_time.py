@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 
 
 token = '18255e67301d178a9bb17661933c55a0895154078885110d'
@@ -192,8 +193,12 @@ def query_realtime_macd(code, long_cycle=26, short_cycle=12):
 
 
 def query_realtime_bk(code):
+    if code is not '':
+        code = f'90.{code}'
+    else:
+        code = '1.000001'
     # SSE 流式传输接口 URL
-    url = f"https://77.push2.eastmoney.com/api/qt/stock/trends2/sse?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f17&fields2=f51,f52,f53,f54,f55,f56,f57,f58&mpi=1000&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=90.{code}&ndays=1&iscr=0&iscca=0"
+    url = f"https://77.push2.eastmoney.com/api/qt/stock/trends2/sse?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f17&fields2=f51,f52,f53,f54,f55,f56,f57,f58&mpi=1000&ut=fa5fd1943c7b386f172d6893dbfba10b&secid={code}&ndays=1&iscr=0&iscca=0"
     # 启动请求，获取 SSE 流式数据
     with requests.get(url, stream=True)as response:# 确保请求成功
         if response.status_code == 200:
@@ -226,3 +231,87 @@ def query_realtime_bk(code):
         else:
             print(f"错误{response.status_code}")
 
+def query_realtime_money_flow(secid):
+    if str(secid).startswith('0') or str(secid).startswith('3'):
+        secid = f"0.{secid}"
+    elif str(secid).startswith('6'):
+        secid = f"1.{secid}"
+    """
+    获取股票资金流向数据并返回结构化的 JSON 数据
+    :param secid: 股票代码（格式如：0.300253）
+    :return: JSON 格式数据，包含主力净流入、各单类型净流入、净流出等信息
+    """
+    url = "https://push2.eastmoney.com/api/qt/ulist.np/get"
+    params = {
+        "fltt": 2,
+        "secids": secid,
+        "fields": (
+            "f62,f184,f66,f69,f72,f75,f78,f81,f84,f87,"
+            "f64,f65,f70,f71,f76,f77,f82,f83,f6,"
+            "f278,f279,f280,f281,f282"
+        ),
+        "_": int(time.time() * 1000)  # 动态时间戳
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get("rc") == 0 and "data" in data:
+            stock_data = data["data"]["diff"][0]
+
+            # 构造 JSON 数组
+            result = [
+                {
+                    "类型": "主力净流入",
+                    "流入": stock_data["f62"],
+                    "占比": stock_data["f184"]
+                },
+                {
+                    "类型": "超大单",
+                    "流入": stock_data["f64"],
+                    "流出": stock_data["f65"],
+                    "净额": stock_data["f66"],
+                    "占比": stock_data["f69"]
+                },
+                {
+                    "类型": "大单",
+                    "流入": stock_data["f70"],
+                    "流出": stock_data["f71"],
+                    "净额": stock_data["f72"],
+                    "占比": stock_data["f75"]
+                },
+                {
+                    "类型": "中单",
+                    "流入": stock_data["f76"],
+                    "流出": stock_data["f77"],
+                    "净额": stock_data["f78"],
+                    "占比": stock_data["f81"]
+                },
+                {
+                    "类型": "小单",
+                    "流入": stock_data["f82"],
+                    "流出": stock_data["f83"],
+                    "净额": stock_data["f84"],
+                    "占比": stock_data["f87"]
+                }
+            ]
+
+            return result
+        else:
+            print(f"Error in API response: {data.get('rt')}")
+            return {}
+    except requests.RequestException as e:
+        print(f"HTTP Request failed: {e}")
+        return {}
+
+
+
+
+# https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&secids=0.300253&fields=f62,f184,f66,f69,f72,f75,f78,f81,f84,f87,f64,f65,f70,f71,f76,f77,f82,f83,f164,f166,f168,f170,f172,f252,f253,f254,f255,f256,f124,f6,f278,f279,f280,f281,f282&_=1732689841231
+
+
+# https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?lmt=0&klt=101&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65&secid=0.002777&_=1732688289808
+
+# 日期	收盘价	涨跌幅	主力净额流入 主力净占比 超大单净额流入 超大单净占比 大单净额流入	大单净占比 中单净额流入	中单净占比 小单净额流入	小单净占比
