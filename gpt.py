@@ -76,7 +76,7 @@ def create_data(code, start_date, user_bk):
     short_cycle = 12  # 短期周期
 
     data = f"股票代码{code}\n"
-    data = "# 历史相关数据"
+    data += "# 历史相关数据"
     data += "\n1.历史日线数据：\n"
     data += "\n".join(map(str,query_day_kline(index_code, start_date, end_date, calculation_cycle)))
     data += "\n2.历史rsi数据：\n"
@@ -92,7 +92,7 @@ def create_data(code, start_date, user_bk):
     data += "\n".join(map(str,query_day_kline(user_bk, start_date, end_date)))
 
     if is_today():
-        data = "\n# 今日1分钟k线数据："
+        data += "\n# 今日1分钟k线数据："
         data += "\n1.今日股票1分钟k线：\n"
         data += "\n".join(map(str, query_index_realtime_kline(index_code)))
         data += "\n2.今日股票1分钟kdj：\n"
