@@ -3,27 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <style>
+    <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            /*justify-content: center;*/
+            flex-direction: row;
             height: 100vh;
             background-color: #f4f4f4;
         }
-        h1 {
-            margin-bottom: 20px;
+        #history {
+            width: 300px;
+            background-color: #fff;
+            border-right: 1px solid #ccc;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        #history h2 {
+            margin-top: 0;
+        }
+        #history ul {
+            list-style: none;
+            padding: 0;
+        }
+        #history li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        #history li:hover {
+            background-color: #e9e9e9;
+        }
+        .delete-button {
+            color: red;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
         }
         form {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-        #user_input {
+        #user_input, #user_bk, #user_prompt {
             width: 300px;
             max-width: 600px;
             height: 30px;
@@ -32,29 +66,9 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             margin-bottom: 20px;
-            resize: none;
-        }
-        #user_bk {
-            width: 300px;
-            max-width: 600px;
-            height: 30px;
-            padding: 10px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            resize: none;
         }
         #user_prompt {
-            width: 300px;
-            max-width: 600px;
             height: 80px;
-            padding: 10px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            resize: none;
         }
         button {
             padding: 10px 20px;
@@ -65,8 +79,12 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        button:hover {
-            background-color: #0056b3;
+        button.loading {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        button.loading:after {
+            content: " 处理中...";
         }
         #result {
             width: 80%;
@@ -82,18 +100,120 @@
     <title>Ai 财务自由v0.2</title>
 </head>
 <body>
-    <h1>Ai 财务自由v0.2</h1>
-    <form method="POST">
-        <input type="text" id="user_input" name="user_input" placeholder="输入一个股票代码"/>
-        <input type="text" id="user_bk" name="user_bk"  placeholder="输入一个板块编号"/>
-        <textarea type="text" id="user_prompt" name="user_prompt" placeholder="补充提示词"></textarea>
-        <button type="submit">15点30前预测当日走势，否则为明日走势</button>
-        <h2>目前只有个股的部分数据，预测结果仅用于<t style="color: red">学习</t>；银海002777，软件BK0737</h2>
-        <div>v0.2优化部分提示，当日预测添加板块1分钟k数据</div>
-    </form>
-    <hr>
-    <div id="result">
-        {{ result_md | safe }}
+    <div id="history">
+        <h2>历史记录</h2>
+        <ul id="historyList">
+            <!-- 历史记录会动态添加到这里 -->
+        </ul>
     </div>
+    <div id="main-content">
+        <h1>Ai 财务自由v0.2</h1>
+        <form id="stockForm" method="POST">
+            <input type="text" id="user_input" name="user_input" placeholder="输入一个股票代码" />
+            <input type="text" id="user_bk" name="user_bk" placeholder="输入一个板块编号" />
+            <textarea id="user_prompt" name="user_prompt" placeholder="补充提示词"></textarea>
+            <button id="submitButton" type="submit">15点30前预测当日走势，否则为明日走势</button>
+            <h2>目前只有个股的部分数据，预测结果仅用于<t style="color: red">学习</t>；银海002777，软件BK0737</h2>
+            <div>v0.2优化部分提示，当日预测添加板块1分钟k数据</div>
+        </form>
+        <hr>
+        <div id="result">
+            <!-- 显示后端返回的预测结果 -->
+        </div>
+    </div>
+
+    <script>
+        // Function to save form data and prediction to localStorage
+        function saveToHistory(data) {
+            const history = JSON.parse(localStorage.getItem('history')) || [];
+            history.push(data);
+            localStorage.setItem('history', JSON.stringify(history));
+            updateHistoryList();
+        }
+
+        // Function to update the history list
+        function updateHistoryList() {
+            const historyList = document.getElementById('historyList');
+            const history = JSON.parse(localStorage.getItem('history')) || [];
+            historyList.innerHTML = '';
+            history.forEach((entry, index) => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <span>${entry.timestamp} - ${entry.userInput}</span>
+                    <span class="delete-button" data-index="${index}">×</span>
+                `;
+                listItem.querySelector('.delete-button').addEventListener('click', () => deleteHistoryEntry(index));
+                listItem.addEventListener('click', () => loadHistoryData(index));
+                historyList.appendChild(listItem);
+            });
+        }
+
+        // Function to load data from history
+        function loadHistoryData(index) {
+            const history = JSON.parse(localStorage.getItem('history')) || [];
+            const entry = history[index];
+            if (entry) {
+                document.getElementById('user_input').value = entry.userInput || '';
+                document.getElementById('user_bk').value = entry.userBk || '';
+                document.getElementById('user_prompt').value = entry.userPrompt || '';
+                document.getElementById('result').innerHTML = `<p>预测结果: ${entry.prediction || '无'}</p>`;
+            }
+        }
+
+        // Function to delete a specific history entry
+        function deleteHistoryEntry(index) {
+            const history = JSON.parse(localStorage.getItem('history')) || [];
+            history.splice(index, 1); // Remove the selected entry
+            localStorage.setItem('history', JSON.stringify(history));
+            updateHistoryList(); // Update the UI
+        }
+
+        // Function to handle form submission
+        async function handleSubmit(event) {
+            event.preventDefault();
+
+            // Add loading state to button
+            const submitButton = document.getElementById('submitButton');
+            submitButton.classList.add('loading');
+            submitButton.disabled = true;
+
+            const userInput = document.getElementById('user_input').value;
+            const userBk = document.getElementById('user_bk').value;
+            const userPrompt = document.getElementById('user_prompt').value;
+            const timestamp = new Date().toLocaleString();
+
+            // Prepare data to send to the backend
+            const requestData = { user_input: userInput, user_bk: userBk, user_prompt: userPrompt };
+
+            try {
+                // Send data to backend and await response
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData),
+                });
+                const responseData = await response.json();
+
+                // Display prediction result
+                document.getElementById('result').innerHTML = `<p>预测结果: ${responseData.prediction || '无'}</p>`;
+
+                // Save data to localStorage
+                saveToHistory({ timestamp, userInput, userBk, userPrompt, prediction: responseData.prediction });
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `<p style="color: red;">请求失败，请检查后端服务。</p>`;
+            } finally {
+                // Remove loading state from button
+                submitButton.classList.remove('loading');
+                submitButton.disabled = false;
+            }
+        }
+
+        // Add event listener to form
+        document.getElementById('stockForm').addEventListener('submit', handleSubmit);
+
+        // Initialize history list on page load
+        window.addEventListener('DOMContentLoaded', updateHistoryList);
+    </script>
 </body>
 </html>

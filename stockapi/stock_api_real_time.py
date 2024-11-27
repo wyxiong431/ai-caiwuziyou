@@ -211,10 +211,10 @@ def query_realtime_bk(code):
                     trends_parsed = [
                         {
                             "时间": trend.split(",")[0][11:],
-                            "开盘": float(trend.split(",")[1]),
+                            "分钟开": float(trend.split(",")[1]),
                             "最高": float(trend.split(",")[2]),
                             "最低": float(trend.split(",")[3]),
-                            "收盘": float(trend.split(",")[4]),
+                            "分钟收": float(trend.split(",")[4]),
                             "成交量": int(trend.split(",")[5]),
                             "成交额": float(trend.split(",")[6])
                             # "评价价": float(trend.split(",")[7])
